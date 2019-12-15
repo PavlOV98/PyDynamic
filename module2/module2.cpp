@@ -43,11 +43,7 @@ uDynamic::uDynamic(const uDynamic& a)
 	this->size = a.size;
 	//this->numb = a.numb + 1;
 	this->data = new unsigned __int8[this->size];
-	//memcpy(this->data, a.data, this->size);
-	for (int i = 0; i < this->size; i++)
-	{
-		a.data[i] = this->data[i];
-	}
+	memcpy(this->data, a.data, this->size);
 }
 
 uDynamic::~uDynamic()
@@ -62,29 +58,30 @@ uDynamic& uDynamic::operator=(const uDynamic& src)
 	this->size = src.size;
 	//this->numb = src.numb + 1;
 	this->data = new unsigned __int8[this->size];
-	//memcpy(this->data, src.data, this->size);;
-	for (int i = 0; i < this->size; i++)
-	{
-		src.data[i] = this->data[i];
-	}
+	memcpy(this->data, src.data, this->size);;
 	return *this;
-	// TODO: вставьте здесь оператор return
-
 }
 
 #define byteSize 20 
-int test()
+PyObject* test(int mode, int seed)
 {
+	srand(seed);
 	unsigned __int8 a = 255, b = 2, of = 0;
 	uDynamic s1(byteSize), s2(byteSize);
+
+	PyObject* AList = PyList_New(0);
+	PyObject* BList = PyList_New(0);
+	
 	for (int i = 0; i < s1.size; i++)
 	{
 		s1.data[i] = rand() + 0x20;
+		PyList_Append(AList, Py_BuildValue("i", s1.data[i]));
 		s2.data[i] = rand();// +8;
+		PyList_Append(BList, Py_BuildValue("i", s2.data[i]));
 	}
 	s1.data[0] = 1;
 
-	//s2.data[0] = 1;
+	/*s2.data[0] = 1;
 	for (int i = s1.size - 1; i >= 0; i--)
 		printf("%02X ", s1.data[i]);
 	//putchar('\n');
@@ -99,14 +96,48 @@ int test()
 	//minus(s1, s2, res);
 
 	uDynamic res(0);
-	res = and (s1, s2);
+
+	switch (mode)
+	{
+	case 0:
+		res = sum (s1, s2);
+		break;
+	case 1:
+		res = minus(s1, s2);
+		break;
+	case 2:
+		res = and(s1, s2);
+		break;
+	case 3:
+		res = or(s1, s2);
+		break;
+	default:
+		break;
+	}
+
+	
+
+	PyObject* PList = PyList_New(0);
+
 
 	for (int i = s1.size - 1; i >= 0; i--)
-		printf("%02X ", res.data[i]);
-	putchar('\n');
+	{
+		//printf("%02X ", res.data[i]);
+		//PyList_Append(PList, Py_BuildValue("i", res.data[i]));
+	}
+
+	for (int i = 0; i < res.size; i++)
+	{
+		PyList_Append(PList, Py_BuildValue("i", res.data[i]));
+	}
+	//putchar('\n');
+
+	PyObject* result = PyList_New(0);
+	PyList_Append(result, AList);
+	PyList_Append(result, BList);
+	PyList_Append(result, PList);
 	//system("pause");
-	//delete res;
-	return 0;
+	return result;
 }
 
 uDynamic sum(uDynamic a, uDynamic b)
@@ -181,6 +212,15 @@ uDynamic and (uDynamic a, uDynamic b)
 	void* bp = b.data;
 	uDynamic res(len);
 
+	for (int i = 0; i < a.size; i++)
+	{
+		printf("%02X ", a.data[i]);
+	}
+	for (int i = 0; i < b.size; i++)
+	{
+		printf("%02X ", b.data[i]);
+	}
+
 	res.data = new unsigned __int8[len];
 	rp = res.data;
 	_asm {
@@ -197,39 +237,45 @@ uDynamic and (uDynamic a, uDynamic b)
 		pushf
 		sum4 :
 		mov ebx, ap
-			mov eax, DWORD PTR[ebx];
+		mov eax, DWORD PTR[ebx];
 		mov ebx, a2p
-			mov ebx, DWORD PTR[ebx]
+		mov ebx, DWORD PTR[ebx]
 
-			and eax, ebx
+		and eax, ebx
 
-			mov ebx, rp
-			mov DWORD PTR[ebx], eax
+		mov ebx, rp
+		mov DWORD PTR[ebx], eax
 
-			add ap, 4
-			add a2p, 4
-			add rp, 4
-			LOOP sum4
-			esum4 :
+		add ap, 4
+		add a2p, 4
+		add rp, 4
+		LOOP sum4
+		esum4 :
 
 		movzx ecx, it1
-			cmp ecx, 0
-			JZ esum1
-			sum1 :
+		cmp ecx, 0
+		JZ esum1
+		sum1 :
 		mov ebx, ap
-			mov al, BYTE PTR[ebx];
+		mov al, BYTE PTR[ebx];
 		mov ebx, a2p
-			mov bl, BYTE PTR[ebx]
-			and al, bl
-			mov ebx, rp
-			mov BYTE PTR[ebx], al
-			add ap, 1
-			add a2p, 1
-			add rp, 1
-			LOOP sum1
-			esum1 :
+		mov bl, BYTE PTR[ebx]
+		and al, bl
+		mov ebx, rp
+		mov BYTE PTR[ebx], al
+		add ap, 1
+		add a2p, 1
+		add rp, 1
+		LOOP sum1
+		esum1 :
 
 		popf
+	}
+
+	for (int i = res.size - 1; i >= 0; i--)
+	{
+		printf("%02X ", res.data[i]);
+		
 	}
 
 	return res;
@@ -259,37 +305,37 @@ uDynamic or (uDynamic a, uDynamic b)
 		pushf
 		sum4 :
 		mov ebx, ap
-			mov eax, DWORD PTR[ebx];
+		mov eax, DWORD PTR[ebx];
 		mov ebx, a2p
-			mov ebx, DWORD PTR[ebx]
+		mov ebx, DWORD PTR[ebx]
 
-			or eax, ebx
+		or eax, ebx
 
-			mov ebx, rp
-			mov DWORD PTR[ebx], eax
+		mov ebx, rp
+		mov DWORD PTR[ebx], eax
 
-			add ap, 4
-			add a2p, 4
-			add rp, 4
-			LOOP sum4
-			esum4 :
+		add ap, 4
+		add a2p, 4
+		add rp, 4
+		LOOP sum4
+		esum4 :
 
 		movzx ecx, it1
-			cmp ecx, 0
-			JZ esum1
-			sum1 :
+		cmp ecx, 0
+		JZ esum1
+		sum1 :
 		mov ebx, ap
-			mov al, BYTE PTR[ebx];
+		mov al, BYTE PTR[ebx];
 		mov ebx, a2p
-			mov bl, BYTE PTR[ebx]
-			or al, bl
-			mov ebx, rp
-			mov BYTE PTR[ebx], al
-			add ap, 1
-			add a2p, 1
-			add rp, 1
-			LOOP sum1
-			esum1 :
+		mov bl, BYTE PTR[ebx]
+		or al, bl
+		mov ebx, rp
+		mov BYTE PTR[ebx], al
+		add ap, 1
+		add a2p, 1
+		add rp, 1
+		LOOP sum1
+		esum1 :
 
 		popf
 	}
@@ -461,7 +507,7 @@ uDynamic inv(uDynamic a)
 
 
 
-PyObject *module2_example(PyObject *self, PyObject *args, PyObject *kwargs) {
+PyObject *module2_example(PyObject *self, PyObject* args) {
     /* Shared references that do not need Py_DECREF before returning. */
     /*PyObject *obj = NULL;
     int number = 0;
@@ -480,8 +526,11 @@ PyObject *module2_example(PyObject *self, PyObject *args, PyObject *kwargs) {
         return NULL;   
     }
 	*/
-    test();
-
+	int mode, seed=0;
+	PyArg_ParseTuple(args, "i", &mode);
+	//PyArg_ParseTuple(argS, "i", &seed);
+	return test(mode,seed);
+	 
     Py_RETURN_NONE;
 }
 
