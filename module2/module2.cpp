@@ -65,7 +65,7 @@ uDynamic& uDynamic::operator=(const uDynamic& src)
 #define byteSize 20 
 PyObject* test(int mode, int seed)
 {
-	srand(seed);
+	srand(time(NULL));
 	unsigned __int8 a = 255, b = 2, of = 0;
 	uDynamic s1(byteSize), s2(byteSize);
 
@@ -75,19 +75,25 @@ PyObject* test(int mode, int seed)
 	for (int i = 0; i < s1.size; i++)
 	{
 		s1.data[i] = rand() + 0x20;
-		PyList_Append(AList, Py_BuildValue("i", s1.data[i]));
+		
 		s2.data[i] = rand();// +8;
-		PyList_Append(BList, Py_BuildValue("i", s2.data[i]));
+		
 	}
 	s1.data[0] = 1;
 
-	/*s2.data[0] = 1;
+	//s2.data[0] = 1;
 	for (int i = s1.size - 1; i >= 0; i--)
+	{
 		printf("%02X ", s1.data[i]);
+		PyList_Append(AList, Py_BuildValue("i", s1.data[i]));
+	}
 	//putchar('\n');
 	for (int i = s1.size - 1; i >= 0; i--)
+	{
 		printf("%02X ", s2.data[i]);
-	putchar('\n');
+		PyList_Append(BList, Py_BuildValue("i", s2.data[i]));
+	}
+	//putchar('\n');
 	//uDynamic res(0);// = new uDynamic(0);
 	/*inc(s1);
 	for (int i = s1.size - 1; i >= 0; i--)
@@ -123,13 +129,13 @@ PyObject* test(int mode, int seed)
 	for (int i = s1.size - 1; i >= 0; i--)
 	{
 		//printf("%02X ", res.data[i]);
-		//PyList_Append(PList, Py_BuildValue("i", res.data[i]));
-	}
-
-	for (int i = 0; i < res.size; i++)
-	{
 		PyList_Append(PList, Py_BuildValue("i", res.data[i]));
 	}
+
+	/*for (int i = 0; i < res.size; i++)
+	{
+		PyList_Append(PList, Py_BuildValue("i", res.data[i]));
+	}*/
 	//putchar('\n');
 
 	PyObject* result = PyList_New(0);
@@ -147,6 +153,13 @@ uDynamic sum(uDynamic a, uDynamic b)
 	void* ap = a.data, * rp, * a2p = b.data;
 	void* bp = b.data;
 	uDynamic res(len);
+
+	for (int i = a.size - 1; i >= 0; i--)
+		printf("%02X ", a.data[i]);
+	putchar('\n');
+	for (int i = b.size - 1; i >= 0; i--)
+		printf("%02X ", b.data[i]);
+	putchar('\n');
 
 	res.data = new unsigned __int8[len];
 	rp = res.data;
@@ -199,6 +212,12 @@ uDynamic sum(uDynamic a, uDynamic b)
 			esum1 :
 
 		popf
+	}
+
+	for (int i = res.size - 1; i >= 0; i--)
+	{
+		printf("%02X ", res.data[i]);
+		
 	}
 
 	return res;
